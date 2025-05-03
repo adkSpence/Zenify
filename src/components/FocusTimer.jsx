@@ -2,12 +2,21 @@ import { useState } from "react";
 
 export default function FocusTimer() {
   const [minutes, setMinutes] = useState(30);
+  const [skipBreaks, setSkipBreaks] = useState(false);
 
   const adjustTime = (amount) => {
     setMinutes((prev) => {
       const next = prev + amount;
       return Math.max(5, Math.min(next, 120));
     });
+  };
+
+  const calculateBreaks = () => {
+    if (skipBreaks) return "Breaks skipped";
+    const breaks = Math.floor(minutes / 25);
+    return breaks === 0
+      ? "No breaks"
+      : `You'll get ${breaks} break${breaks > 1 ? "s" : ""}`;
   };
 
   return (
@@ -24,24 +33,16 @@ export default function FocusTimer() {
 
       {/* Time Selector */}
       <div className="flex items-center justify-center gap-3">
-        {/* Value Display */}
         <div className="text-3xl font-bold w-16 text-center">{minutes}</div>
         <span className="text-gray-600 text-base">mins</span>
 
-        {/* Vertical Stepper */}
         <div className="flex flex-col gap-1">
           <button
             onClick={() => adjustTime(5)}
             className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 border"
             aria-label="Increase time"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
             </svg>
           </button>
@@ -50,13 +51,7 @@ export default function FocusTimer() {
             className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 border"
             aria-label="Decrease time"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -64,7 +59,18 @@ export default function FocusTimer() {
       </div>
 
       {/* Breaks Info */}
-      <p className="text-center text-sm text-gray-500 mt-2">You'll get 1 break</p>
+      <div className="text-center space-y-2">
+        <p className="text-sm text-gray-500">{calculateBreaks()}</p>
+        <label className="flex items-center justify-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={skipBreaks}
+            onChange={() => setSkipBreaks(!skipBreaks)}
+            className="form-checkbox h-4 w-4 text-blue-600"
+          />
+          Skip Breaks
+        </label>
+      </div>
 
       {/* Start Button */}
       <div className="text-center">
