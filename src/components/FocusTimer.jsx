@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 
-export default function FocusTimer() {
+export default function FocusTimer({ onSessionComplete }) {
   const [minutes, setMinutes] = useState(30);
   const [skipBreaks, setSkipBreaks] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(30 * 60);
+  const [initialSeconds, setInitialSeconds] = useState(30 * 60);
   const timerRef = useRef(null);
+  // Store the session minutes to report exact set time, not elapsed time
+  const sessionMinutes = useRef(30);
 
   const adjustTime = (amount) => {
     setMinutes((prev) => {
@@ -28,8 +31,12 @@ export default function FocusTimer() {
   };
 
   const startSession = () => {
-    setRemainingSeconds(minutes * 60);
+    const totalSeconds = minutes * 60;
+    setRemainingSeconds(totalSeconds);
+    setInitialSeconds(totalSeconds);
     setIsRunning(true);
+    // Store the exact minutes that were set for this session
+    sessionMinutes.current = minutes;
   };
 
   const quitSession = () => {
@@ -40,43 +47,50 @@ export default function FocusTimer() {
   useEffect(() => {
     if (!isRunning) return;
 
+    // Using a simple interval that updates every second is more reliable
     timerRef.current = setInterval(() => {
       setRemainingSeconds((prev) => {
-        if (prev <= 60) {
+        // Check if timer is done
+        if (prev <= 1) {
           clearInterval(timerRef.current);
+          setIsRunning(false);
+          
+          // CRITICAL FIX: Use the stored session minutes value
+          // instead of calculating from elapsed time
+          if (onSessionComplete) {
+            onSessionComplete(sessionMinutes.current);
+          }
           return 0;
         }
-        return prev - 60;
+        return prev - 1;
       });
-    }, 60000); // 1 minute interval
+    }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [isRunning]);
+  }, [isRunning, onSessionComplete]);
 
   const displayMinutes = Math.floor(remainingSeconds / 60);
-  const progress = 1 - remainingSeconds / (minutes * 60);
+  const progress = 1 - remainingSeconds / initialSeconds;
 
   return (
     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 min-h-[430px] flex flex-col justify-center space-y-6">
       {!isRunning ? (
         <>
-          {/* Header */}
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-1">Ready, set, focus!</h2>
             <p className="text-gray-600 text-sm">
               Achieve your goals and get more done with focus sessions.
               <br />
-              Tell us how much time you have, and we’ll set up the rest.
+              Tell us how much time you have, and we'll set up the rest.
             </p>
           </div>
 
-          {/* Time Selector */}
           <div className="flex items-center justify-center gap-3">
             <input
               type="text"
               value={minutes}
               onChange={handleManualInput}
-              className="appearance-none text-3xl font-bold w-20 text-center px-2 py-1 border border-gray-300 rounded"
+              className="text-3xl font-bold w-20 text-center px-2 py-1 border border-gray-300 rounded"
             />
             <span className="text-gray-600 text-base">mins</span>
 
@@ -102,7 +116,6 @@ export default function FocusTimer() {
             </div>
           </div>
 
-          {/* Breaks Info */}
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-500">{calculateBreaks()}</p>
             <label className="flex items-center justify-center gap-2 text-sm text-gray-700">
@@ -116,7 +129,6 @@ export default function FocusTimer() {
             </label>
           </div>
 
-          {/* Start Button */}
           <div className="text-center">
             <button
               onClick={startSession}
